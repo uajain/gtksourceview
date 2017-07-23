@@ -36,8 +36,8 @@
 #include "gtksourcecompletionwords.h"
 #include "gtksourcecompletionwordslibrary.h"
 #include "gtksourcecompletionwordsbuffer.h"
-#include "gtksourcecompletionwordsutils.h"
 #include "gtksourceview/gtksource.h"
+#include "gtksourcecompletionwordsutils.h"
 #include "gtksourceview/gtksourceview-enumtypes.h"
 #include "gtksourceview/gtksourceview-i18n.h"
 

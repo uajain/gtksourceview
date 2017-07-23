@@ -264,6 +264,7 @@ gtksourceview/gtksourceversion.h
 gtksourceview/GtkSource-${GSV_API_VERSION}.metadata:gtksourceview/GtkSource.metadata.in
 gtksourceview/completion-providers/Makefile
 gtksourceview/completion-providers/words/Makefile
+gtksourceview/completion-providers/vim-words/Makefile
 po/Makefile.in
 tests/Makefile
 testsuite/Makefile

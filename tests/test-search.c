@@ -54,6 +54,7 @@ struct _TestSearchPrivate
 	GtkLabel *label_regex_error;
 
 	guint idle_update_label_id;
+	gint count;
 };
 
 GType test_search_get_type (void);
@@ -104,7 +105,7 @@ update_label_occurrences (TestSearch *search)
 	gchar *text;
 
 	occurrences_count = gtk_source_search_context_get_occurrences_count (search->priv->search_context);
-
+	search->priv->count = occurrences_count;
 	gtk_text_buffer_get_selection_bounds (GTK_TEXT_BUFFER (search->priv->source_buffer),
 					      &select_start,
 					      &select_end);
@@ -214,6 +215,7 @@ button_previous_clicked_cb (TestSearch *search,
 						  search);
 }
 
+
 static void
 forward_search_finished (GtkSourceSearchContext *search_context,
 			 GAsyncResult           *result,
@@ -221,6 +223,7 @@ forward_search_finished (GtkSourceSearchContext *search_context,
 {
 	GtkTextIter match_start;
 	GtkTextIter match_end;
+	gboolean has_wrapped;
 
 	if (gtk_source_search_context_forward_finish (search_context,
 						      result,
@@ -229,7 +232,16 @@ forward_search_finished (GtkSourceSearchContext *search_context,
 						      NULL,
 						      NULL))
 	{
-		select_search_occurrence (search, &match_start, &match_end);
+		//select_search_occurrence (search, &match_start, &match_end);
+		g_print ("TEXT: %s\n", gtk_text_iter_get_text (&match_start, &match_end));
+		if (search->priv->count > 0)
+			{
+				gtk_source_search_context_forward_async (search->priv->search_context,
+                         &match_end,
+                         NULL,
+                         (GAsyncReadyCallback)forward_search_finished,
+                         search);search->priv->count--;
+			}
 	}
 }
 

@@ -182,6 +182,7 @@ libgtksourceview_@GSV_API_VERSION@_la_SOURCES =
 libgtksourceview_@GSV_API_VERSION@_la_LIBADD = 				\
 	libgtksourceview-core.la					\
 	completion-providers/words/libgtksourcecompletionwords.la	\
+	completion-providers/vim-words/libgtksourcecompletionvimwords.la	\
 	$(CODE_COVERAGE_LIBS)						\
 	$(LIBM)								\
 	$(DEP_LIBS)							\
@@ -272,6 +273,10 @@ libgtksourcecompletionwords_files =	\
 	./completion-providers/words/gtksourcecompletionwords.h	\
 	./completion-providers/words/gtksourcecompletionwords.c
 
+libgtksourcecompletionvimwords_files =	\
+	./completion-providers/vim-words/gtksourcecompletionvimwords.h	\
+	./completion-providers/vim-words/gtksourcecompletionvimwords.c
+
 if HAVE_INTROSPECTION
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS = GtkSource-@GSV_API_VERSION@.gir
@@ -294,6 +299,7 @@ GtkSource_@GSV_API_VERSION@_gir_LIBS = libgtksourceview-@GSV_API_VERSION@.la
 GtkSource_@GSV_API_VERSION@_gir_FILES =		\
 	gtksource.h				\
 	$(libgtksourcecompletionwords_files)	\
+	$(libgtksourcecompletionvimwords_files)	\
 	$(libgtksourceview_public_headers)	\
 	$(libgtksourceview_public_c_files)	\
 	$(BUILT_SOURCES)
@@ -398,6 +404,7 @@ MSVC_INTROSPECT_GIRS = GtkSource-@GSV_API_VERSION@.gir
 GtkSource_@GSV_API_VERSION@_gir_MSVC_FILES =	\
 	gtksource.h				\
 	$(libgtksourcecompletionwords_files)	\
+	$(libgtksourcecompletionvim`words_files)	\
 	$(libgtksourceview_public_headers)	\
 	$(libgtksourceview_public_c_files)	\
 	$(BUILT_SOURCES)
