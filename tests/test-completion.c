@@ -329,7 +329,7 @@ create_completion (GtkSourceView       *source_view,
 {
 	/* Words completion provider */
 	word_provider = gtk_source_completion_words_new (NULL, NULL);
-	vim_word_provider = gtk_source_completion_vim_words_new ();
+	vim_word_provider = gtk_source_completion_vim_words_new (NULL, NULL);
 
 	gtk_source_completion_words_register (word_provider,
 	                                      gtk_text_view_get_buffer (GTK_TEXT_VIEW (source_view)));

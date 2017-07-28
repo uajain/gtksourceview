@@ -47,20 +47,19 @@ static GParamSpec *properties[N_PROPERTIES];
 static void gtk_source_completion_vim_words_iface_init (GtkSourceCompletionProviderIface *iface);
 
 struct _GtkSourceCompletionVimWordsPrivate {
-	
+
 	GtkSourceSearchContext *search_context;
 	GtkSourceSearchSettings *search_settings;
 	GtkSourceCompletionContext *context;
-  GList *list;
-
+	GHashTable *all_proposals;
 	gchar *word;
 	guint cancel_id;
 
 	gchar *name;
-    GdkPixbuf *icon;
-    gint interactive_delay;
-    gint priority;
-    GtkSourceCompletionActivation activation;
+	GdkPixbuf *icon;
+	gint interactive_delay;
+	gint priority;
+	GtkSourceCompletionActivation activation;
 };
 
 G_DEFINE_TYPE_WITH_CODE (GtkSourceCompletionVimWords,
@@ -68,7 +67,7 @@ G_DEFINE_TYPE_WITH_CODE (GtkSourceCompletionVimWords,
              G_TYPE_OBJECT,
              G_ADD_PRIVATE (GtkSourceCompletionVimWords)
              G_IMPLEMENT_INTERFACE (GTK_SOURCE_TYPE_COMPLETION_PROVIDER,
-                        gtk_source_completion_vim_words_iface_init))
+				    gtk_source_completion_vim_words_iface_init))
 
 
 static gchar *
@@ -101,41 +100,49 @@ word_prefix_at_iter (GtkSourceCompletionContext *context)
 
 static void
 forward_search_finished (GtkSourceSearchContext *search_context,
-             GAsyncResult           *result,
-             GtkSourceCompletionVimWords             *self)
+			 GAsyncResult           *result,
+			 GtkSourceCompletionVimWords             *self)
 {
   GtkTextIter match_start;
   GtkTextIter match_end;
   gboolean has_wrapped_around;
-	GtkSourceCompletionVimWordsProposal *proposal;
-	GError *error = NULL;
+  GtkSouRcecompletionvimwordsproposal *proposal;
+  GError *error = NULL;
+  GList *list = NULL;
 
   if (gtk_source_search_context_forward_finish (search_context,
-                              result,
-                              &match_start,
-                              &match_end,
-                              &has_wrapped_around,
-                              &error))
+						result,
+						&match_start,
+						&match_end,
+						&has_wrapped_around,
+						&error))
 	{
-		g_print ("TEXT: %s\n", gtk_text_iter_get_text (&match_start, &match_end));
-		proposal = gtk_source_completion_vim_words_proposal_new (gtk_text_iter_get_text (&match_start, &match_end));
-		self->priv->list = g_list_prepend (self->priv->list, proposal);
-        gtk_source_search_context_forward_async (self->priv->search_context,
-                         &match_end,
-                         NULL,
-                         (GAsyncReadyCallback)forward_search_finished,
-                         self);
-	return;
-    }
+		gchar *text = NULL;
 
-	self->priv->list = g_list_reverse (self->priv->list);
-	    gtk_source_completion_context_add_proposals (self->priv->context,
-                                                 GTK_SOURCE_COMPLETION_PROVIDER (self),
-                                                 self->priv->list,
-                                                 TRUE);
+		text = gtk_text_iter_get_text (&match_start, &match_end);
 
-    g_list_free (self->priv->list);	
+		if (!g_hash_table_contains (self->priv->all_proposals, text))
+		{
+			proposal = gtk_source_completion_vim_words_proposal_new (text);
 
+			g_hash_table_insert (self->priv->all_proposals, g_strdup (text), g_object_ref (proposal));
+		}
+
+		gtk_source_search_context_forward_async (self->priv->search_context,
+							 &match_end,
+							 NULL,
+							 (GAsyncReadyCallback)forward_search_finished,
+							 self);
+		return;
+	}
+
+  list = g_hash_table_get_values (self->priv->all_proposals);
+  gtk_source_completion_context_add_proposals (self->priv->context,
+					       GTK_SOURCE_COMPLETION_PROVIDER (self),
+					       list,
+					       TRUE);
+
+    g_list_free (list);
 }
 
 static gchar *
@@ -191,10 +198,9 @@ gtk_source_completion_vim_words_populate (GtkSourceCompletionProvider *provider,
   
 	self->priv->search_settings = gtk_source_search_settings_new ();
 
-  self->priv->search_context = gtk_source_search_context_new (GTK_SOURCE_BUFFER (gtk_text_iter_get_buffer (&iter)),
-                                      												self->priv->search_settings);
+	self->priv->search_context = gtk_source_search_context_new (GTK_SOURCE_BUFFER (gtk_text_iter_get_buffer (&iter)),
+								    self->priv->search_settings);
 	self->priv->context = g_object_ref (context);
-	self->priv->list = NULL;
 
 	gtk_source_search_settings_set_regex_enabled (self->priv->search_settings, TRUE);
 	gtk_source_search_settings_set_at_word_boundaries (self->priv->search_settings, TRUE);
@@ -203,25 +209,22 @@ gtk_source_completion_vim_words_populate (GtkSourceCompletionProvider *provider,
 	unescaped_text = gtk_source_utils_unescape_search_text (self->priv->word);
 
 	gtk_source_search_settings_set_search_text (self->priv->search_settings, "ide[a-zA-Z0-9_]*"); // get regex here
-  g_free (unescaped_text);
+	g_free (unescaped_text);
 
-	self->priv->cancel_id = g_signal_connect_swapped (context,
-																										 "cancelled",
-                              											 G_CALLBACK (population_finished),
-                              											 self);
+	self->priv->cancel_id = g_signal_connect_swapped (context, "cancelled", G_CALLBACK (population_finished), self);
 
 	gtk_source_search_context_forward_async (self->priv->search_context,
-  									                       &iter,
-                    									     NULL,
-                         									 (GAsyncReadyCallback)forward_search_finished,
-                        									 self);
+						 &iter,
+						 NULL,
+						 (GAsyncReadyCallback)forward_search_finished,
+						 self);
 }
 
 static gboolean
 gtk_source_completion_vim_words_get_start_iter (GtkSourceCompletionProvider *provider,
-																								GtkSourceCompletionContext  *context,
-                                            		GtkSourceCompletionProposal *proposal,
-                                            		GtkTextIter                 *iter)
+						GtkSourceCompletionContext  *context,
+						GtkSourceCompletionProposal *proposal,
+						GtkTextIter                 *iter)
 {
 	gchar *word;
 	glong nb_chars;
@@ -230,13 +233,13 @@ gtk_source_completion_vim_words_get_start_iter (GtkSourceCompletionProvider *pro
 		return FALSE;
 
 	word = word_prefix_at_iter (context);
-  g_return_val_if_fail (word != NULL, FALSE);
+	g_return_val_if_fail (word != NULL, FALSE);
 
-  nb_chars = g_utf8_strlen (word, -1);
-  gtk_text_iter_backward_chars (iter, nb_chars);
+	nb_chars = g_utf8_strlen (word, -1);
+	gtk_text_iter_backward_chars (iter, nb_chars);
 
-  g_free (word);
-  return TRUE;
+	g_free (word);
+	return TRUE;
 }
 
 static gint
@@ -323,7 +326,8 @@ gtk_source_completion_vim_words_dispose (GObject *object)
   self->priv->name = NULL;
 
   g_clear_object (&self->priv->icon);
-	g_clear_object (&self->priv->search_context);
+  g_clear_object (&self->priv->search_context);
+  g_clear_pointer (&self->priv->all_proposals, (GDestroyNotify) g_hash_table_unref);
 
   G_OBJECT_CLASS (gtk_source_completion_vim_words_parent_class)->dispose (object);
 }
@@ -429,6 +433,7 @@ static void
 gtk_source_completion_vim_words_init (GtkSourceCompletionVimWords *self)
 {
 	self->priv = gtk_source_completion_vim_words_get_instance_private (self);
+	self->priv->all_proposals = g_hash_table_new_full (g_str_hash, g_str_equal, g_free, g_object_unref);
 }
 
 GtkSourceCompletionVimWords *
