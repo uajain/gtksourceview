@@ -106,7 +106,7 @@ forward_search_finished (GtkSourceSearchContext *search_context,
   GtkTextIter match_start;
   GtkTextIter match_end;
   gboolean has_wrapped_around;
-  GtkSouRcecompletionvimwordsproposal *proposal;
+  GtkSourceCompletionVimWordsProposal *proposal;
   GError *error = NULL;
   GList *list = NULL;
 

@@ -270,14 +270,7 @@ add_remove_provider (GtkToggleButton             *button,
 {
 	g_return_if_fail (provider != NULL);
 
-	if (gtk_toggle_button_get_active (button))
-	{
-		gtk_source_completion_add_provider (completion, provider, NULL);
-	}
-	else
-	{
 		gtk_source_completion_remove_provider (completion, provider, NULL);
-	}
 }
 
 static void
@@ -335,10 +328,6 @@ create_completion (GtkSourceView       *source_view,
 	                                      gtk_text_view_get_buffer (GTK_TEXT_VIEW (source_view)));
 
 	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (word_provider),
-	                                    NULL);
-
-	gtk_source_completion_add_provider (completion,
 	                                    GTK_SOURCE_COMPLETION_PROVIDER (vim_word_provider),
 	                                    NULL);
 
@@ -350,9 +339,6 @@ create_completion (GtkSourceView       *source_view,
 	fixed_provider->priority = 5;
 	fixed_provider->name = g_strdup ("Fixed Provider");
 
-	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (fixed_provider),
-	                                    NULL);
 
 	/* Random provider: the proposals vary on each populate */
 	random_provider = g_object_new (test_provider_get_type (), NULL);
@@ -360,9 +346,6 @@ create_completion (GtkSourceView       *source_view,
 	random_provider->priority = 1;
 	random_provider->name = g_strdup ("Random Provider");
 
-	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (random_provider),
-	                                    NULL);
 }
 
 static void
