@@ -34,13 +34,13 @@
 
 enum
 {
-    PROP_0,
-    PROP_NAME,
-    PROP_ICON,
-    PROP_INTERACTIVE_DELAY,
-    PROP_PRIORITY,
-    PROP_ACTIVATION,
-    N_PROPERTIES
+  PROP_0,
+  PROP_NAME,
+  PROP_ICON,
+  PROP_INTERACTIVE_DELAY,
+  PROP_PRIORITY,
+  PROP_ACTIVATION,
+  N_PROPERTIES
 };
 static GParamSpec *properties[N_PROPERTIES];
 
@@ -63,11 +63,11 @@ struct _GtkSourceCompletionVimWordsPrivate {
 };
 
 G_DEFINE_TYPE_WITH_CODE (GtkSourceCompletionVimWords,
-             gtk_source_completion_vim_words,
-             G_TYPE_OBJECT,
-             G_ADD_PRIVATE (GtkSourceCompletionVimWords)
-             G_IMPLEMENT_INTERFACE (GTK_SOURCE_TYPE_COMPLETION_PROVIDER,
-				    gtk_source_completion_vim_words_iface_init))
+                         gtk_source_completion_vim_words,
+                         G_TYPE_OBJECT,
+                         G_ADD_PRIVATE (GtkSourceCompletionVimWords)
+                         G_IMPLEMENT_INTERFACE (GTK_SOURCE_TYPE_COMPLETION_PROVIDER,
+                         gtk_source_completion_vim_words_iface_init))
 
 
 static gchar *
@@ -111,11 +111,11 @@ forward_search_finished (GtkSourceSearchContext *search_context,
   GList *list = NULL;
 
   if (gtk_source_search_context_forward_finish (search_context,
-						result,
-						&match_start,
-						&match_end,
-						&has_wrapped_around,
-						&error))
+                                                result,
+                                                &match_start,
+                                                &match_end,
+                                                &has_wrapped_around,
+                                                &error))
 	{
 		gchar *text = NULL;
 
@@ -183,7 +183,6 @@ gtk_source_completion_vim_words_populate (GtkSourceCompletionProvider *provider,
 {
 	GtkSourceCompletionVimWords *self = GTK_SOURCE_COMPLETION_VIM_WORDS (provider);
 	GtkTextIter iter;
-	gchar *unescaped_text;
 
 	// NOTE: Return if the completion is not USER_REQUESTED
 
@@ -195,7 +194,8 @@ gtk_source_completion_vim_words_populate (GtkSourceCompletionProvider *provider,
 
 	g_free (self->priv->word);
 	self->priv->word = NULL;
-  
+	g_hash_table_remove_all (self->priv->all_proposals);
+
 	self->priv->search_settings = gtk_source_search_settings_new ();
 
 	self->priv->search_context = gtk_source_search_context_new (GTK_SOURCE_BUFFER (gtk_text_iter_get_buffer (&iter)),
@@ -205,11 +205,9 @@ gtk_source_completion_vim_words_populate (GtkSourceCompletionProvider *provider,
 	gtk_source_search_settings_set_regex_enabled (self->priv->search_settings, TRUE);
 	gtk_source_search_settings_set_at_word_boundaries (self->priv->search_settings, TRUE);
 
-	self->priv->word = word_prefix_at_iter (context);
-	unescaped_text = gtk_source_utils_unescape_search_text (self->priv->word);
+	self->priv->word = g_strconcat (word_prefix_at_iter (context) , "[a-zA-Z0-9_]*", NULL);
 
-	gtk_source_search_settings_set_search_text (self->priv->search_settings, "ide[a-zA-Z0-9_]*"); // get regex here
-	g_free (unescaped_text);
+	gtk_source_search_settings_set_search_text (self->priv->search_settings, self->priv->word);
 
 	self->priv->cancel_id = g_signal_connect_swapped (context, "cancelled", G_CALLBACK (population_finished), self);
 
