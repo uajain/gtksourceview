@@ -26,6 +26,7 @@ typedef struct _TestProvider TestProvider;
 typedef struct _TestProviderClass TestProviderClass;
 
 static GtkSourceCompletionWords *word_provider;
+static GtkSourceCompletionVimWords *vim_word_provider;
 static TestProvider *fixed_provider;
 static TestProvider *random_provider;
 
@@ -269,14 +270,7 @@ add_remove_provider (GtkToggleButton             *button,
 {
 	g_return_if_fail (provider != NULL);
 
-	if (gtk_toggle_button_get_active (button))
-	{
-		gtk_source_completion_add_provider (completion, provider, NULL);
-	}
-	else
-	{
 		gtk_source_completion_remove_provider (completion, provider, NULL);
-	}
 }
 
 static void
@@ -328,12 +322,13 @@ create_completion (GtkSourceView       *source_view,
 {
 	/* Words completion provider */
 	word_provider = gtk_source_completion_words_new (NULL, NULL);
+	vim_word_provider = gtk_source_completion_vim_words_new (NULL, NULL);
 
 	gtk_source_completion_words_register (word_provider,
 	                                      gtk_text_view_get_buffer (GTK_TEXT_VIEW (source_view)));
 
 	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (word_provider),
+	                                    GTK_SOURCE_COMPLETION_PROVIDER (vim_word_provider),
 	                                    NULL);
 
 	g_object_set (word_provider, "priority", 10, NULL);
@@ -344,9 +339,6 @@ create_completion (GtkSourceView       *source_view,
 	fixed_provider->priority = 5;
 	fixed_provider->name = g_strdup ("Fixed Provider");
 
-	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (fixed_provider),
-	                                    NULL);
 
 	/* Random provider: the proposals vary on each populate */
 	random_provider = g_object_new (test_provider_get_type (), NULL);
@@ -354,10 +346,24 @@ create_completion (GtkSourceView       *source_view,
 	random_provider->priority = 1;
 	random_provider->name = g_strdup ("Random Provider");
 
-	gtk_source_completion_add_provider (completion,
-	                                    GTK_SOURCE_COMPLETION_PROVIDER (random_provider),
-	                                    NULL);
 }
+
+static void
+file_loaded (GObject *object, GAsyncResult *res, gpointer user_data)
+{
+
+    GtkSourceFileLoader *loader = (GtkSourceFileLoader * )object;
+	GtkSourceView *source_view = GTK_SOURCE_VIEW (user_data);
+	GtkSourceCompletion *completion;
+    if(gtk_source_file_loader_load_finish (loader, res, NULL))
+        {g_print ("\nFile loaded bc");}
+
+	completion = gtk_source_view_get_completion (source_view);
+	create_completion (source_view, completion);
+
+
+}
+
 
 static void
 create_window (void)
@@ -376,6 +382,9 @@ create_window (void)
 	GtkCheckButton *enable_random_provider;
 	GtkSpinButton *nb_fixed_proposals;
 	GtkSpinButton *nb_random_proposals;
+	GFile *gfile;
+    GtkSourceFile *source_file;
+    GtkSourceFileLoader *loader;
 
 	builder = gtk_builder_new ();
 
@@ -423,7 +432,14 @@ create_window (void)
 				show_icons, "active",
 				G_BINDING_SYNC_CREATE | G_BINDING_BIDIRECTIONAL);
 
-	create_completion (source_view, completion);
+	source_file = gtk_source_file_new ();
+	gfile = g_file_new_for_path ("/home/uajain/jhbuild/checkout/gnome-builder/libide/files/ide-file.c");
+    gtk_source_file_set_location (source_file, gfile);
+    g_object_unref (gfile);
+
+    loader = gtk_source_file_loader_new (GTK_SOURCE_BUFFER (gtk_text_view_get_buffer (GTK_TEXT_VIEW (source_view))), source_file);
+    gtk_source_file_loader_load_async (loader, G_PRIORITY_DEFAULT, NULL, NULL, NULL, NULL, file_loaded, source_view);
+
 
 	g_signal_connect (enable_word_provider,
 			  "toggled",
